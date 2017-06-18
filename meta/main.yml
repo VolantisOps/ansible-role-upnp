@@ -1,0 +1,14 @@
+---
+dependencies: []
+
+galaxy_info:
+  author: bmcclure
+  description: Installs miniupnpc and the related pip2 bindings and manages opening UPnP ports automatically on Archlinux
+  company: "Volantis Development"
+  license: Apache
+  min_ansible_version: 2.0
+  platforms:
+    - name: Archlinux
+      versions:
+        - all
+  galaxy_tags: []

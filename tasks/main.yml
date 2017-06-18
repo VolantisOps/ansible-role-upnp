@@ -1,0 +1,46 @@
+---
+- name: Allow in from port 1900 on the gateway address
+  ufw:
+    rule: allow
+    proto: udp
+    src: "{{ ansible_default_ipv4.gateway }}"
+    direction: in
+    from_port: 1900
+  when: upnp_manage_ufw
+
+- name: Ensure miniupnpc package is present
+  pacman: name=miniupnpc state=present
+
+- name: Install python2 bindings for miniupnpc
+  pip:
+    name: miniupnpc
+    executable: pip2
+
+- name: Download upnpmap scripts
+  get_url:
+    url: "https://raw.githubusercontent.com/bmcclure/upnpmap/master/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - upnpmap-add
+    - upnpmap-check
+    - upnpmap-date
+    - upnpmap-delete
+    - upnpmap-ip
+    - upnpmap-list
+
+- name: Check if ports are already mapped with UPnP
+  command: "/usr/local/bin/upnpmap-check -p {{ item.port }} -i {{ item.intport }} -a {{ ansible_default_ipv4.address }} -r {{ item.protocol }}"
+  register: upnpmap_check
+  changed_when: upnpmap_check.rc != 0
+  failed_when: upnpmap_check.rc < 0
+  with_items: "{{ upnp_mapping }}"
+
+- name: Map ports with UPnP
+  command: "/usr/local/bin/upnpmap-add -p {{ item.0.port }} -i {{ item.0.intport }} -a {{ ansible_default_ipv4.address }} -r {{ item.0.protocol }}"
+  when: item.1.rc != 0
+  with_together:
+    - "{{ upnp_mapping }}"
+    - "{{ upnpmap_check.results }}"
